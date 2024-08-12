@@ -25,6 +25,7 @@ import os
 import sys
 import traceback
 import datetime
+from colorama import Fore, Back, Style
 
 import ldap3
 import ssl
@@ -240,6 +241,8 @@ class DACLedit(object):
         self.rights_guid = args.rights_guid
         self.filename = args.filename
         self.inheritance = args.inheritance
+        self.evil = args.evil
+
         if self.inheritance:
             logging.info("NB: objects with adminCount=1 will no inherit ACEs from their parent container/OU")
 
@@ -284,14 +287,25 @@ class DACLedit(object):
     # Attempts to add a new ACE to a DACL
     def write(self):
         # Creates ACEs with the specified GUIDs and the SID, or FullControl if no GUID is specified
-        # Append the ACEs in the DACL locally
-        if self.rights == "FullControl" and self.rights_guid is None:
-            logging.debug("Appending ACE (%s --(FullControl)--> %s)" % (self.principal_SID, format_sid(self.target_SID)))
-            self.principal_security_descriptor['Dacl'].aces.append(self.create_ace(SIMPLE_PERMISSIONS.FullControl.value, self.principal_SID, self.ace_type))
+        # Evil behavior: ???
+        if self.evil:
+            logging.info(f"{Fore.RED}EVIL MODE ACTIVATED!!! THIS IS A POTENTIALLY DESTRUCTIVE ACTION!!!{Style.RESET_ALL}")
+            if self.rights == "FullControl" and self.rights_guid is None:
+                logging.debug(f"{Fore.RED}EVIL MODE ACTIVATED!!! PREPENDING ACE (%s --(FullControl)--> %s){Style.RESET_ALL}" % (self.principal_SID, format_sid(self.target_SID)))
+                self.principal_security_descriptor['Dacl'].aces.insert(0, self.create_ace(SIMPLE_PERMISSIONS.FullControl.value, self.principal_SID, self.ace_type))
+            else:
+                for rights_guid in self.build_guids_for_rights():
+                    logging.debug(f"{Fore.RED}EVIL MODE ACTIVATED!!! PREPENDING ACE (%s --(%s)--> %s){Style.RESET_ALL}" % (self.principal_SID, rights_guid, format_sid(self.target_SID)))
+                    self.principal_security_descriptor['Dacl'].aces.insert(0, self.create_object_ace(rights_guid, self.principal_SID, self.ace_type))
+        # Normal behavior: append the ACEs in the DACL locally
         else:
-            for rights_guid in self.build_guids_for_rights():
-                logging.debug("Appending ACE (%s --(%s)--> %s)" % (self.principal_SID, rights_guid, format_sid(self.target_SID)))
-                self.principal_security_descriptor['Dacl'].aces.append(self.create_object_ace(rights_guid, self.principal_SID, self.ace_type))
+            if self.rights == "FullControl" and self.rights_guid is None:
+                logging.debug("Appending ACE (%s --(FullControl)--> %s)" % (self.principal_SID, format_sid(self.target_SID)))
+                self.principal_security_descriptor['Dacl'].aces.append(self.create_ace(SIMPLE_PERMISSIONS.FullControl.value, self.principal_SID, self.ace_type))
+            else:
+                for rights_guid in self.build_guids_for_rights():
+                    logging.debug("Appending ACE (%s --(%s)--> %s)" % (self.principal_SID, rights_guid, format_sid(self.target_SID)))
+                    self.principal_security_descriptor['Dacl'].aces.append(self.create_object_ace(rights_guid, self.principal_SID, self.ace_type))
         # Backups current DACL before add the new one
         self.backup()
         # Effectively push the DACL with the new ACE
@@ -722,6 +736,8 @@ def parse_args():
     dacl_parser.add_argument('-rights-guid', type=str, help='Manual GUID representing the right to write/remove')
     dacl_parser.add_argument('-inheritance', action="store_true", help='Enable the inheritance in the ACE flag with CONTAINER_INHERIT_ACE and OBJECT_INHERIT_ACE. Useful when target is a Container or an OU, '
                                                                        'ACE will be inherited by objects within the container/OU (except objects with adminCount=1)')
+    dacl_parser.add_argument('-evil', action="store_true", help='Enable evil mode')
+    
 
     if len(sys.argv) == 1:
         parser.print_help()
