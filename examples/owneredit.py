@@ -159,8 +159,11 @@ class OwnerEdit(object):
         logging.info("- SID: %s" % current_owner_SID)
         logging.info("- sAMAccountName: %s" % self.resolveSID(current_owner_SID))
         self.ldap_session.search(self.domain_dumper.root, '(objectSid=%s)' % current_owner_SID, attributes=['distinguishedName'])
-        current_owner_distinguished_name = self.ldap_session.entries[0]
-        logging.info("- distinguishedName: %s" % current_owner_distinguished_name['distinguishedName'])
+        try:
+            current_owner_distinguished_name = self.ldap_session.entries[0]
+            logging.info("- distinguishedName: %s" % current_owner_distinguished_name['distinguishedName'])
+        except:
+            logging.info("- for some reason this owner does not have a distinguished name, maybe it's a system account")
 
     def write(self):
         logging.debug('Attempt to modify the OwnerSid')

@@ -1,9 +1,9 @@
 setuptools
 six
 charset_normalizer
-colorama
 pyasn1>=0.2.3
 pyasn1_modules
+pycryptodome
 pycryptodomex
 pyOpenSSL==24.0.0
 ldap3>=2.5,!=2.5.2,!=2.5.0,!=2.6

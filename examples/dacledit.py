@@ -25,7 +25,6 @@ import os
 import sys
 import traceback
 import datetime
-from colorama import Fore, Back, Style
 
 import ldap3
 import ssl
@@ -289,13 +288,13 @@ class DACLedit(object):
         # Creates ACEs with the specified GUIDs and the SID, or FullControl if no GUID is specified
         # Evil behavior: ???
         if self.evil:
-            logging.info(f"{Fore.RED}EVIL MODE ACTIVATED!!! THIS IS A POTENTIALLY DESTRUCTIVE ACTION!!!{Style.RESET_ALL}")
+            logging.info("Evil mode activated - I hope you know what you are doing")
             if self.rights == "FullControl" and self.rights_guid is None:
-                logging.debug(f"{Fore.RED}EVIL MODE ACTIVATED!!! PREPENDING ACE (%s --(FullControl)--> %s){Style.RESET_ALL}" % (self.principal_SID, format_sid(self.target_SID)))
+                logging.debug("Evil mode activated - Prepending ACE (%s --(FullControl)--> %s)" % (self.principal_SID, format_sid(self.target_SID)))
                 self.principal_security_descriptor['Dacl'].aces.insert(0, self.create_ace(SIMPLE_PERMISSIONS.FullControl.value, self.principal_SID, self.ace_type))
             else:
                 for rights_guid in self.build_guids_for_rights():
-                    logging.debug(f"{Fore.RED}EVIL MODE ACTIVATED!!! PREPENDING ACE (%s --(%s)--> %s){Style.RESET_ALL}" % (self.principal_SID, rights_guid, format_sid(self.target_SID)))
+                    logging.debug("Evil mode activated - Prepending ACE (%s --(%s)--> %s)" % (self.principal_SID, rights_guid, format_sid(self.target_SID)))
                     self.principal_security_descriptor['Dacl'].aces.insert(0, self.create_object_ace(rights_guid, self.principal_SID, self.ace_type))
         # Normal behavior: append the ACEs in the DACL locally
         else:
